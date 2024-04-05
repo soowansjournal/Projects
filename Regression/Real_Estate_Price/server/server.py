@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import util
 
-# use postman to test http calls from backend server!
+# use Postman Desktop App to test http calls from backend server!
 
 # ind_var_columns.json --> independent variable columns
 # model_real_estate_price.pickle --> linear regression model
@@ -17,6 +17,8 @@ app = Flask(__name__)
 #  expose http endpoint: add '/get_location' to run get_location() at http web server
 @app.route('/get_location_names') # default method 'GET' request - fetches data to url
 def get_location_names():
+    # load the artifact files first to use the global variables!
+    util.load_saved_artifacts()
     # jsonify serializes data to JSON format and wraps it in a Response format
     # the util file contains all the functions/methods to load locations, model and function/method to predict prices
     # return a response that contains all the house locations 
@@ -47,6 +49,7 @@ def predict_home_price():
 
 if __name__ == "__main__":
     print("Starting Python Flask Server For Real Estate Price Prediction...")
-    # run the application on this specific code
+    # load the artifact files first to use the global variables!
     util.load_saved_artifacts()
+    # run the application on this specific code
     app.run()

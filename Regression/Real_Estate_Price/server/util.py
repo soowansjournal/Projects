@@ -2,7 +2,7 @@ import json
 import pickle
 import numpy as np
 
-#  use postman to test http calls from backend server!
+# use Postman Desktop App to test http calls from backend server!
 
 # ind_var_columns.json --> independent variable columns
 # model_real_estate_price.pickle --> linear regression model
@@ -29,13 +29,14 @@ def load_saved_artifacts():
         __locations = __data_columns[3:]
 
     global __model
+    
     # load the serialized machine learning model from banglore_home_prices_model.pickle
-    with open("/Users/soowan/documents/vscode/projects/regression/real_estate_price/server/artifacts/model_real_estate_price.pickle", 'rb') as f:
+    with open("/Users/soowan/Documents/VSCODE/Projects/Regression/real_estate_price/server/artifacts/model_real_estate_price.pickle", 'rb') as f:
         __model = pickle.load(f)
     print("loading saved artifacts...done")
 
 
-# returns the independent variable, locations, from global variable
+# returns the independent variable (locations) from global variable
 def get_location_names():
     return __locations
 

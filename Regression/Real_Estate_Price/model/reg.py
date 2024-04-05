@@ -82,7 +82,7 @@ def bhk_outlier(df):
 
 # 1) Explore the Data
 
-df1 = pd.read_csv("/Users/soowan/documents/vscode/projects/regression/bengaluru_house_data.csv")
+df1 = pd.read_csv("/Users/soowan/Documents/VSCODE/Projects/Regression/Real_Estate_Price/model/bengaluru_house_data.csv")
 print(df1.head(3),'\n')
 
 # Dataset Size?
@@ -358,18 +358,21 @@ one_hot_df, price_2 = predict_price('Indira Nagar', 1000,2,2)
 print(price_2, 'Rupees')
 
 
-# to create backend - python flask server!!!
 
+# 3) Backend Flask Server: model.pickle + ind_var.json
+
+# export linear regression model that we created as .pickle
 # convert python file into a byte stream using pickle
 import pickle
-with open('banglore_home_prices_model.pickle', 'wb') as f:
+with open('model_real_estate_price.pickle', 'wb') as f:
     pickle.dump(lr_clf, f)
 
+# export independent variables from cleaned data as .json
 import json
 columns = {
     'data_columns' : [col.lower() for col in X.columns]
 }
-with open("columns.json","w") as f:
+with open("ind_var_columns.json","w") as f:
     f.write(json.dumps(columns))
             
 

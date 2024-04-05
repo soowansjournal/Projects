@@ -219,13 +219,158 @@ print("\n\n\n EXPLORE new dataframe after removing bathroom outlier")
 df9 = df8[~(df8.bath>df8.bhk +2)]
 print(df9.shape[0])
 
-# we can remove bhk column since identical size column exists
+# we can remove size column since identical bhk column exists
 # we can remove price_per_sqft column since price column exists
 print("\n\n\n EXPLORE Final Dataframe")
-df10 = df9.drop(columns = ['bhk','price_per_sqft','tsf'])
+df10 = df9.drop(columns = ['size','price_per_sqft','tsf'], axis='columns')
 print(df10.head(3))
 
+# 3) Solve the Data
 
+# 3.1) One-Hot Encoding (Categorical --> Numerical)
+
+# one-hot encoding for the categorical data 'location'
+print("\n\n\n EXPLORE One-Hot Encoding")
+dummies = pd.get_dummies(df10.location, dtype=int)
+print(dummies.head(3))
+
+# combine both dataframes
+# dummy variable trap: 
+# occurs when one or more dummy variables are redundant, 
+# meaning they can be predicted from the other variables.
+# avoid dummy variable trap, have one less dummy column
+df11 = pd.concat([df10, dummies.drop('other', axis = 'columns')], axis = 'columns')
+# we can drop 'locations' column since it is now one-hot encoded
+df12 = df11.drop('location', axis = 'columns')
+
+# 3.2) Split: Xy, TestTrain
+
+X = df12.drop('price', axis='columns')
+y = df12.price
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.2,random_state=10)
+
+# 3.3) Model: Classifier, Train, Test
+# 3.3) Model: Test Models & Tune Hyperparameter using GridSearchCV
+# 3.3) Model: Create Predictor
+
+# Classifier, Train, Test
+print("\n\n\n EXPLORE Model Prediction Score")
+from sklearn.linear_model import LinearRegression
+lr_clf = LinearRegression()
+# use values not the entire dataframe to train and test
+print(lr_clf.fit(X_train.values,y_train.values))
+print(lr_clf.score(X_test.values,y_test.values))
+
+# Cross Validation
+# The dataset is divided into k subsets or folds. 
+# The model is trained and evaluated k times, using a different fold as the validation set each time. 
+# Performance metrics from each fold are averaged to estimate the model's generalization performance.
+print("\n\n\n EXPLORE Model Cross_Validation Score")
+from sklearn.model_selection import ShuffleSplit
+from sklearn.model_selection import cross_val_score
+cv = ShuffleSplit(n_splits=5,test_size=0.2,random_state=0)
+print(cross_val_score(LinearRegression(),X,y,cv=cv))
+# Thus, the average score across all 5 folds is 80% which is pretty good!
+
+# Test Models: Lasso Regression, Decision Tree Regression etc.
+from sklearn.model_selection import GridSearchCV
+from sklearn.linear_model import Lasso
+from sklearn.tree import DecisionTreeRegressor
+# Tune Hyperparameter: For each model using GridSearchCV
+def model_param_gridsearchcv(X,y):
+    algos = {
+        'linear_regression': {
+            'model': LinearRegression(),
+            'params': {
+                'copy_X': [True, False],
+                # 'fit_intercept': [True, False],
+                # 'n_jobs': [1,2,3],
+                # 'positive': [True, False]
+            }
+        },
+        'lasso': {
+            'model': Lasso(),
+            'params': {
+                'alpha': [1,2],
+                'selection': ['random', 'cyclic']
+            }
+        },
+        'decision_tree': {
+            'model': DecisionTreeRegressor(),
+            'params': {
+                'criterion': ['squared_error','friedman_mse'],
+                'splitter': ['best','random']
+                }
+        }
+    }
+    scores = []
+    cv = ShuffleSplit(n_splits=5,test_size=0.2,random_state=0)
+    for algo_name, config in algos.items():
+        gs = GridSearchCV(config['model'],config['params'], cv=cv, return_train_score = False)
+        # train the model
+        gs.fit(X,y)
+        # test the model
+        scores.append({
+            'model': algo_name,
+            # tell me the best score, parameter for each run
+            'best_score': gs.best_score_,
+            'best_params': gs.best_params_
+        })
+    
+    return pd.DataFrame(scores, columns = ['model','best_score', 'best_params'])
+
+
+# x = model_param_gridsearchcv(X,y)
+# print(x)
+# # Thus, from the GridSearchCV
+# # the best model is LinearRegression 
+# # the best hyperparameter is copy_X: True
+
+# create predictions using best model 
+def predict_price(location,sqft,bath,bhk):
+    # make sure the correct location is selected
+    loc_index = X.columns.tolist().index(location)
+
+    # create ZEROS for independent variables
+    x = np.zeros(len(X.columns))
+    x[0] = sqft
+    x[1] = bath
+    x[2] = bhk
+    # make sure the correct location is selected by setting one-hot encoding to 1
+    if loc_index >= 0:
+        x[loc_index] = 1
+    
+    # given a list of independent variables [sqft, bath, bhk, location]
+    # predict dependent variable, housing price
+    # return the one-hot encoding dataframe to see how it works
+    return x, round(lr_clf.predict([x])[0],5)
+
+one_hot_df, price_1 = predict_price('1st Phase JP Nagar', 1000,2,2)
+# notice how the one-hot encoding for location works
+print("\n\n\n EXPLORE how one-hot encoding works")
+print(one_hot_df)
+print("\n\n\n EXPLORE Predictions!")
+print(price_1, 'Rupees')
+
+one_hot_df, price_2 = predict_price('Indira Nagar', 1000,2,2)
+print(price_2, 'Rupees')
+
+
+# to create backend - python flask server!!!
+
+# convert python file into a byte stream using pickle
+import pickle
+with open('banglore_home_prices_model.pickle', 'wb') as f:
+    pickle.dump(lr_clf, f)
+
+import json
+columns = {
+    'data_columns' : [col.lower() for col in X.columns]
+}
+with open("columns.json","w") as f:
+    f.write(json.dumps(columns))
             
 
 
